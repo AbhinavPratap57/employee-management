@@ -1,13 +1,14 @@
 package com.codemyth.controllers;
 
-import com.codemyth.models.Employee;
-import com.codemyth.services.EmployeeService;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Optional;
+import com.codemyth.models.Employee;
+import com.codemyth.services.EmployeeService;
 
 @RestController
 @RequestMapping("/api/employee")
@@ -18,44 +19,42 @@ public class EmployeeController {
 
     @PostMapping
     public ResponseEntity<String> createEmployee(@RequestBody Employee employee) {
-        try {
-            String response = employeeService.createEmployee(employee);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+        String response = employeeService.createEmployee(employee);
+        if (response.startsWith("❌")) {
+            return ResponseEntity.badRequest().body(response);
         }
+        return ResponseEntity.ok(response);
     }
-
     @GetMapping
     public ResponseEntity<List<Employee>> getAllEmployees() {
         return ResponseEntity.ok(employeeService.getAllEmployees());
     }
-
     @GetMapping("/{id}")
-    public ResponseEntity<?> getEmployeeById(@PathVariable Long id) {
-        Optional<Employee> employee = employeeService.getEmployeeById(id);
-        return employee.isPresent() ? ResponseEntity.ok(employee.get()) :
-                ResponseEntity.status(404).body("❌ Employee not found with id " + id);
+    public ResponseEntity<Employee> getEmployeeById(@PathVariable Long id) {
+        return ResponseEntity.ok(employeeService.getEmployeeById(id));
     }
 
- 
     @PutMapping("/{id}")
     public ResponseEntity<String> updateEmployee(@PathVariable Long id, @RequestBody Employee employee) {
-        try {
-            String response = employeeService.updateEmployee(id, employee);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+        String response = employeeService.updateEmployee(id, employee);
+        if (response.startsWith("❌")) {
+            return ResponseEntity.badRequest().body(response);
         }
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteEmployee(@PathVariable Long id) {
-        return ResponseEntity.ok(employeeService.deleteEmployeeById(id));
+        String response = employeeService.deleteEmployeeById(id);
+        if (response.startsWith("❌")) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping
     public ResponseEntity<String> deleteAllEmployees() {
-        return ResponseEntity.ok(employeeService.deleteAllEmployees());
+        String response = employeeService.deleteAllEmployees();
+        return ResponseEntity.ok(response);
     }
 }

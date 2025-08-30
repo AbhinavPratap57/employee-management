@@ -25,17 +25,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
-    // Handle other general exceptions
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleException(Exception ex) {
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("timestamp", LocalDateTime.now());
-        errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        errorResponse.put("error", "Internal Server Error");
-        errorResponse.put("message", ex.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
- // Validation errors (@Valid से आने वाले)
+    // Validation errors (@Valid से आने वाले)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -48,5 +38,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<String> handleDuplicateKeyException(DataIntegrityViolationException ex) {
         return new ResponseEntity<>("❌ Duplicate entry not allowed (Name, Phone, or Email already exists)", HttpStatus.BAD_REQUEST);
+    }
+
+    // Employee not found
+    @ExceptionHandler(EmployeeNotFoundException.class)
+    public ResponseEntity<String> handleNotFound(EmployeeNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    // Generic fallback for other exceptions
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleOtherExceptions(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                             .body("❌ Something went wrong: " + ex.getMessage());
     }
 }

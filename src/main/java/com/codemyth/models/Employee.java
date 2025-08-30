@@ -5,9 +5,6 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "employee")
-
-//,uniqueConstraints = { @UniqueConstraint(columnNames = { "firstName", "lastName" }),
-//		@UniqueConstraint(columnNames = "phoneNumber"), @UniqueConstraint(columnNames = "emailAddress") })
 public class Employee {
 
 	@Id
