@@ -9,8 +9,10 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import com.codemyth.dto.EmployeeDTO;
 import com.codemyth.exceptions.EmployeeNotFoundException;
+import com.codemyth.mapper.EmployeeMapper;
 import com.codemyth.models.Employee;
 import com.codemyth.repository.EmployeeRepository;
 
@@ -24,7 +26,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 	@Override
 	public String createEmployee(EmployeeDTO employeeDTO) {
 		try {
-			Employee employee = convertToEntity(employeeDTO);
+			Employee employee = EmployeeMapper.toEntity(employeeDTO);
 
 			validateEmployeeFields(employee);
 			checkDuplicateEmployee(employee);
@@ -41,7 +43,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 	@Override
 	public List<EmployeeDTO> getAllEmployees() {
 		try {
-			return employeeRepository.findAll().stream().map(this::convertToDTO).collect(Collectors.toList());
+			return employeeRepository.findAll().stream().map(EmployeeMapper::toDTO).collect(Collectors.toList());
 		} catch (Exception e) {
 			throw new RuntimeException("❌ Failed to fetch employees", e);
 		}
@@ -52,7 +54,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 	public EmployeeDTO getEmployeeById(Long id) {
 		Employee emp = employeeRepository.findById(id)
 				.orElseThrow(() -> new EmployeeNotFoundException("❌ Employee not found with id " + id));
-		return convertToDTO(emp);
+		return EmployeeMapper.toDTO(emp);
 	}
 
 	// UpdateEmployee
@@ -75,20 +77,13 @@ public class EmployeeServiceImpl implements EmployeeService {
 					updatedEmployeeDTO.getLastName(), id)) {
 				throw new IllegalArgumentException("❌ Employee with same name already exists");
 			}
-			// UpdateFields
-			emp.setFirstName(updatedEmployeeDTO.getFirstName());
-			emp.setLastName(updatedEmployeeDTO.getLastName());
-			emp.setAge(updatedEmployeeDTO.getAge());
-			emp.setDateOfBirth(updatedEmployeeDTO.getDateOfBirth());
-			emp.setGender(updatedEmployeeDTO.getGender());
-			emp.setAddress(updatedEmployeeDTO.getAddress());
-			emp.setCity(updatedEmployeeDTO.getCity());
-			emp.setPhoneNumber(updatedEmployeeDTO.getPhoneNumber());
-			emp.setSalary(updatedEmployeeDTO.getSalary());
-			emp.setEmailAddress(updatedEmployeeDTO.getEmailAddress());
+			
+            Employee updatedEmp = EmployeeMapper.toEntity(updatedEmployeeDTO);
+            updatedEmp.setId(id);
+            
+            validateEmployeeFields(updatedEmp);
+            employeeRepository.save(updatedEmp);
 
-			validateEmployeeFields(emp);
-			employeeRepository.save(emp);
 			return "✅ Employee updated successfully!";
 		} catch (IllegalArgumentException e) {
 			return e.getMessage();
@@ -135,7 +130,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 			int age = Period.between(employee.getDateOfBirth(), LocalDate.now()).getYears();
 			if (age != employee.getAge()) {
 				throw new IllegalArgumentException("❌ Age does not match with Date of Birth");
-			}
+			} 
 		}
 
 		// PhoneNumberValidation
@@ -182,38 +177,5 @@ public class EmployeeServiceImpl implements EmployeeService {
 		if (employeeRepository.existsByEmailAddress(employee.getEmailAddress())) {
 			throw new IllegalArgumentException("❌ Email address already exists");
 		}
-	}
-
-	//  Entity-DTO Conversion
-	private EmployeeDTO convertToDTO(Employee emp) {
-		EmployeeDTO dto = new EmployeeDTO();
-		dto.setId(emp.getId());
-		dto.setFirstName(emp.getFirstName());
-		dto.setLastName(emp.getLastName());
-		dto.setAge(emp.getAge());
-		dto.setDateOfBirth(emp.getDateOfBirth());
-		dto.setGender(emp.getGender());
-		dto.setAddress(emp.getAddress());
-		dto.setCity(emp.getCity());
-		dto.setPhoneNumber(emp.getPhoneNumber());
-		dto.setSalary(emp.getSalary());
-		dto.setEmailAddress(emp.getEmailAddress());
-		return dto;
-	}
-
-	private Employee convertToEntity(EmployeeDTO dto) {
-		Employee emp = new Employee();
-		emp.setId(dto.getId());
-		emp.setFirstName(dto.getFirstName());
-		emp.setLastName(dto.getLastName());
-		emp.setAge(dto.getAge());
-		emp.setDateOfBirth(dto.getDateOfBirth());
-		emp.setGender(dto.getGender());
-		emp.setAddress(dto.getAddress());
-		emp.setCity(dto.getCity());
-		emp.setPhoneNumber(dto.getPhoneNumber());
-		emp.setSalary(dto.getSalary());
-		emp.setEmailAddress(dto.getEmailAddress());
-		return emp;
 	}
 }
