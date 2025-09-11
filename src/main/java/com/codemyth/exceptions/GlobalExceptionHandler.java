@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Handle IllegalArgumentException (for validation errors)
+    // Handle IllegalArgumentException
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(IllegalArgumentException ex) {
         Map<String, Object> errorResponse = new HashMap<>();
@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
-    // Validation errors (@Valid से आने वाले)
+    // ValidationErrors
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -34,19 +34,19 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
     }
 
-    // Database duplicate entry error
+    // DatabaseDuplicateEntryError
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<String> handleDuplicateKeyException(DataIntegrityViolationException ex) {
         return new ResponseEntity<>("❌ Duplicate entry not allowed (Name, Phone, or Email already exists)", HttpStatus.BAD_REQUEST);
     }
 
-    // Employee not found
+    // EmployeeNotFound
     @ExceptionHandler(EmployeeNotFoundException.class)
     public ResponseEntity<String> handleNotFound(EmployeeNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 
-    // Generic fallback for other exceptions
+    // GenericFallbackForOtherExceptions
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleOtherExceptions(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

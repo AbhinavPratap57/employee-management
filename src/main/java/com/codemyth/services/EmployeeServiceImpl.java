@@ -5,23 +5,27 @@ import java.time.Period;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
+import com.codemyth.dto.EmployeeDTO;
 import com.codemyth.exceptions.EmployeeNotFoundException;
 import com.codemyth.models.Employee;
 import com.codemyth.repository.EmployeeRepository;
 
 @Service
-public class EmployeeService {
+public class EmployeeServiceImpl implements EmployeeService {
 
 	@Autowired
 	private EmployeeRepository employeeRepository;
 
-	// ✅ Create Employee
-	public String createEmployee(Employee employee) {
+	// CreateEmployee
+	@Override
+	public String createEmployee(EmployeeDTO employeeDTO) {
 		try {
+			Employee employee = convertToEntity(employeeDTO);
+
 			validateEmployeeFields(employee);
 			checkDuplicateEmployee(employee);
 			employeeRepository.save(employee);
@@ -33,49 +37,55 @@ public class EmployeeService {
 		}
 	}
 
-	public List<Employee> getAllEmployees() {
+	// GetAllEmployees
+	@Override
+	public List<EmployeeDTO> getAllEmployees() {
 		try {
-			return employeeRepository.findAll();
+			return employeeRepository.findAll().stream().map(this::convertToDTO).collect(Collectors.toList());
 		} catch (Exception e) {
-			System.out.println("Error fetching employees: " + e.getMessage());
-
 			throw new RuntimeException("❌ Failed to fetch employees", e);
 		}
 	}
 
-	 public Employee getEmployeeById(Long id) {
-	        return employeeRepository.findById(id)
-	                .orElseThrow(() -> new EmployeeNotFoundException("❌ Employee not found with id " + id));
-	    }
+     // GetEmployeeById
+	@Override
+	public EmployeeDTO getEmployeeById(Long id) {
+		Employee emp = employeeRepository.findById(id)
+				.orElseThrow(() -> new EmployeeNotFoundException("❌ Employee not found with id " + id));
+		return convertToDTO(emp);
+	}
 
-	// ✅ Update Employee
-	public String updateEmployee(Long id, Employee updatedEmployee) {
+	// UpdateEmployee
+	@Override
+	public String updateEmployee(Long id, EmployeeDTO updatedEmployeeDTO) {
 		try {
 			Optional<Employee> existing = employeeRepository.findById(id);
 			if (existing.isEmpty()) {
 				return "❌ Employee not found with id " + id;
 			}
 			Employee emp = existing.get();
-			if (employeeRepository.existsByEmailAddressAndIdNot(updatedEmployee.getEmailAddress(), id)) {
+
+			if (employeeRepository.existsByEmailAddressAndIdNot(updatedEmployeeDTO.getEmailAddress(), id)) {
 				throw new IllegalArgumentException("❌ Email already exists for another employee");
 			}
-			if (employeeRepository.existsByPhoneNumberAndIdNot(updatedEmployee.getPhoneNumber(), id)) {
+			if (employeeRepository.existsByPhoneNumberAndIdNot(updatedEmployeeDTO.getPhoneNumber(), id)) {
 				throw new IllegalArgumentException("❌ Phone number already exists for another employee");
 			}
-			if (employeeRepository.existsByFirstNameAndLastNameAndIdNot(updatedEmployee.getFirstName(),
-					updatedEmployee.getLastName(), id)) {
+			if (employeeRepository.existsByFirstNameAndLastNameAndIdNot(updatedEmployeeDTO.getFirstName(),
+					updatedEmployeeDTO.getLastName(), id)) {
 				throw new IllegalArgumentException("❌ Employee with same name already exists");
 			}
-			emp.setFirstName(updatedEmployee.getFirstName());
-			emp.setLastName(updatedEmployee.getLastName());
-			emp.setAge(updatedEmployee.getAge());
-			emp.setDateOfBirth(updatedEmployee.getDateOfBirth());
-			emp.setGender(updatedEmployee.getGender());
-			emp.setAddress(updatedEmployee.getAddress());
-			emp.setCity(updatedEmployee.getCity());
-			emp.setPhoneNumber(updatedEmployee.getPhoneNumber());
-			emp.setSalary(updatedEmployee.getSalary());
-			emp.setEmailAddress(updatedEmployee.getEmailAddress());
+			// UpdateFields
+			emp.setFirstName(updatedEmployeeDTO.getFirstName());
+			emp.setLastName(updatedEmployeeDTO.getLastName());
+			emp.setAge(updatedEmployeeDTO.getAge());
+			emp.setDateOfBirth(updatedEmployeeDTO.getDateOfBirth());
+			emp.setGender(updatedEmployeeDTO.getGender());
+			emp.setAddress(updatedEmployeeDTO.getAddress());
+			emp.setCity(updatedEmployeeDTO.getCity());
+			emp.setPhoneNumber(updatedEmployeeDTO.getPhoneNumber());
+			emp.setSalary(updatedEmployeeDTO.getSalary());
+			emp.setEmailAddress(updatedEmployeeDTO.getEmailAddress());
 
 			validateEmployeeFields(emp);
 			employeeRepository.save(emp);
@@ -86,6 +96,8 @@ public class EmployeeService {
 			return "❌ Something went wrong while updating employee";
 		}
 	}
+    // DeleteEmployeeById
+	@Override
 	public String deleteEmployeeById(Long id) {
 		try {
 			if (employeeRepository.existsById(id)) {
@@ -97,6 +109,8 @@ public class EmployeeService {
 			return "❌ Something went wrong while deleting employee";
 		}
 	}
+     //DeleteAllEmployees
+	@Override
 	public String deleteAllEmployees() {
 		try {
 			employeeRepository.deleteAll();
@@ -106,7 +120,7 @@ public class EmployeeService {
 		}
 	}
 
-	// 🔹 Field validation
+	// Validation
 	private void validateEmployeeFields(Employee employee) {
 		if (employee.getFirstName() == null || employee.getFirstName().trim().isEmpty()) {
 			throw new IllegalArgumentException("❌ First name is required");
@@ -116,7 +130,7 @@ public class EmployeeService {
 			throw new IllegalArgumentException("❌ Last name is required");
 		}
 
-		// Age validation
+		// AgeValidation
 		if (employee.getDateOfBirth() != null) {
 			int age = Period.between(employee.getDateOfBirth(), LocalDate.now()).getYears();
 			if (age != employee.getAge()) {
@@ -124,40 +138,40 @@ public class EmployeeService {
 			}
 		}
 
-		// PhoneNumber validation
+		// PhoneNumberValidation
 		if (employee.getPhoneNumber() != null && !employee.getPhoneNumber().matches("\\d{10}")) {
 			throw new IllegalArgumentException("❌ Phone number must be 10 digits");
 		}
 
-		// Email validation
+		// EmailValidation
 		if (employee.getEmailAddress() != null
 				&& !Pattern.matches("^[A-Za-z0-9+_.-]+@(.+)$", employee.getEmailAddress())) {
 			throw new IllegalArgumentException("❌ Invalid email format");
 		}
 
-		// Gender validation
+		// GenderValidation
 		if (employee.getGender() == null || !(employee.getGender().equalsIgnoreCase("Male")
 				|| employee.getGender().equalsIgnoreCase("Female") || employee.getGender().equalsIgnoreCase("Other"))) {
 			throw new IllegalArgumentException("❌ Gender must be Male, Female or Other");
 		}
 
-		// Address validation
+		// AddressValidation
 		if (employee.getAddress() == null || employee.getAddress().length() < 10) {
 			throw new IllegalArgumentException("❌ Address must be at least 10 characters long");
 		}
 
-		// City validation
+		// CityValidation
 		if (employee.getCity() == null || !employee.getCity().matches("^[A-Za-z ]{2,50}$")) {
 			throw new IllegalArgumentException("❌ City must contain only alphabets (2-50 characters)");
 		}
 
-		// Salary validation
+		// SalaryValidation
 		if (employee.getSalary() == null || employee.getSalary() < 1000) {
 			throw new IllegalArgumentException("❌ Salary must be at least 1000");
 		}
 	}
 
-	// 🔹 Duplicate check (only for create)
+	// DuplicateCheck
 	private void checkDuplicateEmployee(Employee employee) {
 		if (employeeRepository.existsByFirstNameAndLastName(employee.getFirstName(), employee.getLastName())) {
 			throw new IllegalArgumentException("❌ Employee with same name already exists");
@@ -168,5 +182,38 @@ public class EmployeeService {
 		if (employeeRepository.existsByEmailAddress(employee.getEmailAddress())) {
 			throw new IllegalArgumentException("❌ Email address already exists");
 		}
+	}
+
+	//  Entity-DTO Conversion
+	private EmployeeDTO convertToDTO(Employee emp) {
+		EmployeeDTO dto = new EmployeeDTO();
+		dto.setId(emp.getId());
+		dto.setFirstName(emp.getFirstName());
+		dto.setLastName(emp.getLastName());
+		dto.setAge(emp.getAge());
+		dto.setDateOfBirth(emp.getDateOfBirth());
+		dto.setGender(emp.getGender());
+		dto.setAddress(emp.getAddress());
+		dto.setCity(emp.getCity());
+		dto.setPhoneNumber(emp.getPhoneNumber());
+		dto.setSalary(emp.getSalary());
+		dto.setEmailAddress(emp.getEmailAddress());
+		return dto;
+	}
+
+	private Employee convertToEntity(EmployeeDTO dto) {
+		Employee emp = new Employee();
+		emp.setId(dto.getId());
+		emp.setFirstName(dto.getFirstName());
+		emp.setLastName(dto.getLastName());
+		emp.setAge(dto.getAge());
+		emp.setDateOfBirth(dto.getDateOfBirth());
+		emp.setGender(dto.getGender());
+		emp.setAddress(dto.getAddress());
+		emp.setCity(dto.getCity());
+		emp.setPhoneNumber(dto.getPhoneNumber());
+		emp.setSalary(dto.getSalary());
+		emp.setEmailAddress(dto.getEmailAddress());
+		return emp;
 	}
 }
