@@ -1,19 +1,16 @@
 package com.codemyth.services;
 
-import com.codemyth.dto.EmployeeDTO;
 import java.util.List;
 
+import com.codemyth.dto.EmployeeDTO;
+import com.codemyth.models.Employee;
+import com.codemyth.payload.ApiResponse;
+
 public interface EmployeeService {
-
-	String createEmployee(EmployeeDTO employeeDTO);
-
-	List<EmployeeDTO> getAllEmployees();
-
-	EmployeeDTO getEmployeeById(Long id);
-
-	String updateEmployee(Long id, EmployeeDTO updatedEmployeeDTO);
-
-	String deleteEmployeeById(Long id);
-
-	String deleteAllEmployees();
+    ApiResponse<Employee> createEmployee(EmployeeDTO employeeDTO);
+    ApiResponse<List<EmployeeDTO>> getAllEmployees();
+    ApiResponse<EmployeeDTO> getEmployeeById(Long id);
+    ApiResponse<Employee> updateEmployee(Long id, EmployeeDTO employeeDTO);
+    ApiResponse<Void> deleteEmployeeById(Long id);
+    ApiResponse<Void> deleteAllEmployees();
 }

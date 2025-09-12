@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import com.codemyth.dto.EmployeeDTO;
 import com.codemyth.exceptions.EmployeeNotFoundException;
 import com.codemyth.models.Employee;
+import com.codemyth.payload.ApiResponse;
 import com.codemyth.repository.EmployeeRepository;
 
 @Service
@@ -21,114 +22,112 @@ public class EmployeeServiceImpl implements EmployeeService {
 
 	@Autowired
 	private EmployeeRepository employeeRepository;
-	
+
 	@Autowired
-    private ModelMapper modelMapper;
+	private ModelMapper modelMapper;
 
 	// CreateEmployee
 	@Override
-	public String createEmployee(EmployeeDTO employeeDTO) {
+	public ApiResponse<Employee> createEmployee(EmployeeDTO employeeDTO) {
 		try {
-            Employee employee = modelMapper.map(employeeDTO, Employee.class);
+			Employee employee = modelMapper.map(employeeDTO, Employee.class);
 
 			validateEmployeeFields(employee);
 			checkDuplicateEmployee(employee);
-			employeeRepository.save(employee);
-			return "✅ Employee created successfully!";
+
+			Employee savedEmployee = employeeRepository.save(employee);
+			return ApiResponse.success("✅ Employee created successfully!", savedEmployee);
 		} catch (IllegalArgumentException e) {
-			return e.getMessage();
+			return ApiResponse.error(e.getMessage());
 		} catch (Exception e) {
-			return "❌ Something went wrong while creating employee";
+			return ApiResponse.error("❌ Something went wrong while creating employee");
 		}
 	}
 
 	// GetAllEmployees
-    @Override
-    public List<EmployeeDTO> getAllEmployees() {
-        try {
-            return employeeRepository.findAll().stream()
-                    .map(emp -> modelMapper.map(emp, EmployeeDTO.class))
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            throw new RuntimeException("❌ Failed to fetch employees", e);
-        }
-    }
+	@Override
+	public ApiResponse<List<EmployeeDTO>> getAllEmployees() {
+		try {
+			List<EmployeeDTO> employees = employeeRepository.findAll().stream()
+					.map(emp -> modelMapper.map(emp, EmployeeDTO.class)).collect(Collectors.toList());
 
-    // GetEmployeeById
-    @Override
-    public EmployeeDTO getEmployeeById(Long id) {
-        Employee emp = employeeRepository.findById(id)
-                .orElseThrow(() -> new EmployeeNotFoundException("❌ Employee not found with id " + id));
-        return modelMapper.map(emp, EmployeeDTO.class);
-    }
+			return ApiResponse.success("✅ Employees fetched successfully!", employees);
+		} catch (Exception e) {
+			return ApiResponse.error("❌ Failed to fetch employees");
+		}
+	}
 
-    // UpdateEmployee
-    @Override
-    public String updateEmployee(Long id, EmployeeDTO updatedEmployeeDTO) {
-        try {
-            Optional<Employee> existing = employeeRepository.findById(id);
-            if (existing.isEmpty()) {
-                return "❌ Employee not found with id " + id;
-            }
+	// GetEmployeeById
+	@Override
+	public ApiResponse<EmployeeDTO> getEmployeeById(Long id) {
+		try {
+			Employee emp = employeeRepository.findById(id)
+					.orElseThrow(() -> new EmployeeNotFoundException("❌ Employee not found with id " + id));
+			EmployeeDTO empDTO = modelMapper.map(emp, EmployeeDTO.class);
 
-            if (employeeRepository.existsByEmailAddressAndIdNot(updatedEmployeeDTO.getEmailAddress(), id)) {
-                throw new IllegalArgumentException("❌ Email already exists for another employee");
-            }
-            if (employeeRepository.existsByPhoneNumberAndIdNot(updatedEmployeeDTO.getPhoneNumber(), id)) {
-                throw new IllegalArgumentException("❌ Phone number already exists for another employee");
-            }
-            if (employeeRepository.existsByFirstNameAndLastNameAndIdNot(
-                    updatedEmployeeDTO.getFirstName(), updatedEmployeeDTO.getLastName(), id)) {
-                throw new IllegalArgumentException("❌ Employee with same name already exists");
-            }
+			return ApiResponse.success("✅ Employee fetched successfully!", empDTO);
+		} catch (EmployeeNotFoundException e) {
+			return ApiResponse.error(e.getMessage());
+		}
+	}
 
-            Employee updatedEmp = modelMapper.map(updatedEmployeeDTO, Employee.class);
-            updatedEmp.setId(id);
+	// UpdateEmployee
+	@Override
+	public ApiResponse<Employee> updateEmployee(Long id, EmployeeDTO updatedEmployeeDTO) {
+		try {
+			Optional<Employee> existing = employeeRepository.findById(id);
+			if (existing.isEmpty()) {
+				return ApiResponse.error("❌ Employee not found with id " + id);
+			}
 
-            validateEmployeeFields(updatedEmp);
-            employeeRepository.save(updatedEmp);
+			Employee updatedEmp = modelMapper.map(updatedEmployeeDTO, Employee.class);
+			updatedEmp.setId(id);
 
-            return "✅ Employee updated successfully!";
-        } catch (IllegalArgumentException e) {
-            return e.getMessage();
-        } catch (Exception e) {
-            return "❌ Something went wrong while updating employee";
-        }
-    }
+			validateEmployeeFields(updatedEmp);
+			Employee saved = employeeRepository.save(updatedEmp);
 
-    // DeleteEmployeeById
-    @Override
-    public String deleteEmployeeById(Long id) {
-        try {
-            if (employeeRepository.existsById(id)) {
-                employeeRepository.deleteById(id);
-                return "✅ Employee deleted successfully!";
-            }
-            return "❌ Employee not found with id " + id;
-        } catch (Exception e) {
-            return "❌ Something went wrong while deleting employee";
-        }
-    }
+			return ApiResponse.success("✅ Employee updated successfully!", saved);
+		} catch (IllegalArgumentException e) {
+			return ApiResponse.error(e.getMessage());
+		} catch (Exception e) {
+			return ApiResponse.error("❌ Something went wrong while updating employee");
+		}
+	}
 
-    // DeleteAllEmployees
-    @Override
-    public String deleteAllEmployees() {
-        try {
-            employeeRepository.deleteAll();
-            return "✅ All employees deleted successfully!";
-        } catch (Exception e) {
-            return "❌ Something went wrong while deleting all employees";
-        }
-    }
-	
+	// DeleteEmployeeById
+	@Override
+	public ApiResponse<Void> deleteEmployeeById(Long id) {
+		try {
+			if (employeeRepository.existsById(id)) {
+				employeeRepository.deleteById(id);
+				return ApiResponse.success("✅ Employee deleted successfully!", null);
+			}
+			return ApiResponse.error("❌ Employee not found with id " + id);
+		} catch (Exception e) {
+			return ApiResponse.error("❌ Something went wrong while deleting employee");
+		}
+	}
+
+	// DeleteAllEmployees
+	@Override
+	public ApiResponse<Void> deleteAllEmployees() {
+		try {
+			employeeRepository.deleteAll();
+			return ApiResponse.success("✅ All employees deleted successfully!", null);
+		} catch (Exception e) {
+			return ApiResponse.error("❌ Something went wrong while deleting all employees");
+		}
+	}
 
 	// Validation
 	private void validateEmployeeFields(Employee employee) {
-		if (employee.getFirstName() == null || employee.getFirstName().trim().isEmpty()|| employee.getFirstName().equalsIgnoreCase("null")) {
+		if (employee.getFirstName() == null || employee.getFirstName().trim().isEmpty()
+				|| employee.getFirstName().equalsIgnoreCase("null")) {
 			throw new IllegalArgumentException("❌ First name is required and cannot be 'null");
 		}
 
-		if (employee.getLastName() == null || employee.getLastName().trim().isEmpty()|| employee.getLastName().equalsIgnoreCase("null")) {
+		if (employee.getLastName() == null || employee.getLastName().trim().isEmpty()
+				|| employee.getLastName().equalsIgnoreCase("null")) {
 			throw new IllegalArgumentException("❌ Last name is required and cannot be 'null");
 		}
 
@@ -137,7 +136,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 			int age = Period.between(employee.getDateOfBirth(), LocalDate.now()).getYears();
 			if (age != employee.getAge()) {
 				throw new IllegalArgumentException("❌ Age does not match with Date of Birth");
-			} 
+			}
 		}
 
 		// PhoneNumberValidation
@@ -158,12 +157,14 @@ public class EmployeeServiceImpl implements EmployeeService {
 		}
 
 		// AddressValidation
-		if (employee.getAddress() == null || employee.getAddress().equalsIgnoreCase("null") || employee.getAddress().length() < 10) {
+		if (employee.getAddress() == null || employee.getAddress().equalsIgnoreCase("null")
+				|| employee.getAddress().length() < 10) {
 			throw new IllegalArgumentException("❌ Address must be at least 10 characters long and not 'null");
 		}
 
 		// CityValidation
-		if (employee.getCity() == null || employee.getCity().equalsIgnoreCase("null") || !employee.getCity().matches("^[A-Za-z ]{2,50}$")) {
+		if (employee.getCity() == null || employee.getCity().equalsIgnoreCase("null")
+				|| !employee.getCity().matches("^[A-Za-z ]{2,50}$")) {
 			throw new IllegalArgumentException("❌ City must contain only alphabets (2-50 characters) and not 'null");
 		}
 
