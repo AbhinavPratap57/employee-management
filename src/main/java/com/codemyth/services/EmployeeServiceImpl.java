@@ -7,12 +7,12 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.codemyth.dto.EmployeeDTO;
 import com.codemyth.exceptions.EmployeeNotFoundException;
-import com.codemyth.mapper.EmployeeMapper;
 import com.codemyth.models.Employee;
 import com.codemyth.repository.EmployeeRepository;
 
@@ -21,12 +21,15 @@ public class EmployeeServiceImpl implements EmployeeService {
 
 	@Autowired
 	private EmployeeRepository employeeRepository;
+	
+	@Autowired
+    private ModelMapper modelMapper;
 
 	// CreateEmployee
 	@Override
 	public String createEmployee(EmployeeDTO employeeDTO) {
 		try {
-			Employee employee = EmployeeMapper.toEntity(employeeDTO);
+            Employee employee = modelMapper.map(employeeDTO, Employee.class);
 
 			validateEmployeeFields(employee);
 			checkDuplicateEmployee(employee);
@@ -40,80 +43,84 @@ public class EmployeeServiceImpl implements EmployeeService {
 	}
 
 	// GetAllEmployees
-	@Override
-	public List<EmployeeDTO> getAllEmployees() {
-		try {
-			return employeeRepository.findAll().stream().map(EmployeeMapper::toDTO).collect(Collectors.toList());
-		} catch (Exception e) {
-			throw new RuntimeException("❌ Failed to fetch employees", e);
-		}
-	}
+    @Override
+    public List<EmployeeDTO> getAllEmployees() {
+        try {
+            return employeeRepository.findAll().stream()
+                    .map(emp -> modelMapper.map(emp, EmployeeDTO.class))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new RuntimeException("❌ Failed to fetch employees", e);
+        }
+    }
 
-     // GetEmployeeById
-	@Override
-	public EmployeeDTO getEmployeeById(Long id) {
-		Employee emp = employeeRepository.findById(id)
-				.orElseThrow(() -> new EmployeeNotFoundException("❌ Employee not found with id " + id));
-		return EmployeeMapper.toDTO(emp);
-	}
+    // GetEmployeeById
+    @Override
+    public EmployeeDTO getEmployeeById(Long id) {
+        Employee emp = employeeRepository.findById(id)
+                .orElseThrow(() -> new EmployeeNotFoundException("❌ Employee not found with id " + id));
+        return modelMapper.map(emp, EmployeeDTO.class);
+    }
 
-	// UpdateEmployee
-	@Override
-	public String updateEmployee(Long id, EmployeeDTO updatedEmployeeDTO) {
-		try {
-			Optional<Employee> existing = employeeRepository.findById(id);
-			if (existing.isEmpty()) {
-				return "❌ Employee not found with id " + id;
-			}
-			Employee emp = existing.get();
+    // UpdateEmployee
+    @Override
+    public String updateEmployee(Long id, EmployeeDTO updatedEmployeeDTO) {
+        try {
+            Optional<Employee> existing = employeeRepository.findById(id);
+            if (existing.isEmpty()) {
+                return "❌ Employee not found with id " + id;
+            }
 
-			if (employeeRepository.existsByEmailAddressAndIdNot(updatedEmployeeDTO.getEmailAddress(), id)) {
-				throw new IllegalArgumentException("❌ Email already exists for another employee");
-			}
-			if (employeeRepository.existsByPhoneNumberAndIdNot(updatedEmployeeDTO.getPhoneNumber(), id)) {
-				throw new IllegalArgumentException("❌ Phone number already exists for another employee");
-			}
-			if (employeeRepository.existsByFirstNameAndLastNameAndIdNot(updatedEmployeeDTO.getFirstName(),
-					updatedEmployeeDTO.getLastName(), id)) {
-				throw new IllegalArgumentException("❌ Employee with same name already exists");
-			}
-			
-            Employee updatedEmp = EmployeeMapper.toEntity(updatedEmployeeDTO);
+            if (employeeRepository.existsByEmailAddressAndIdNot(updatedEmployeeDTO.getEmailAddress(), id)) {
+                throw new IllegalArgumentException("❌ Email already exists for another employee");
+            }
+            if (employeeRepository.existsByPhoneNumberAndIdNot(updatedEmployeeDTO.getPhoneNumber(), id)) {
+                throw new IllegalArgumentException("❌ Phone number already exists for another employee");
+            }
+            if (employeeRepository.existsByFirstNameAndLastNameAndIdNot(
+                    updatedEmployeeDTO.getFirstName(), updatedEmployeeDTO.getLastName(), id)) {
+                throw new IllegalArgumentException("❌ Employee with same name already exists");
+            }
+
+            Employee updatedEmp = modelMapper.map(updatedEmployeeDTO, Employee.class);
             updatedEmp.setId(id);
-            
+
             validateEmployeeFields(updatedEmp);
             employeeRepository.save(updatedEmp);
 
-			return "✅ Employee updated successfully!";
-		} catch (IllegalArgumentException e) {
-			return e.getMessage();
-		} catch (Exception e) {
-			return "❌ Something went wrong while updating employee";
-		}
-	}
+            return "✅ Employee updated successfully!";
+        } catch (IllegalArgumentException e) {
+            return e.getMessage();
+        } catch (Exception e) {
+            return "❌ Something went wrong while updating employee";
+        }
+    }
+
     // DeleteEmployeeById
-	@Override
-	public String deleteEmployeeById(Long id) {
-		try {
-			if (employeeRepository.existsById(id)) {
-				employeeRepository.deleteById(id);
-				return "✅ Employee deleted successfully!";
-			}
-			return "❌ Employee not found with id " + id;
-		} catch (Exception e) {
-			return "❌ Something went wrong while deleting employee";
-		}
-	}
-     //DeleteAllEmployees
-	@Override
-	public String deleteAllEmployees() {
-		try {
-			employeeRepository.deleteAll();
-			return "✅ All employees deleted successfully!";
-		} catch (Exception e) {
-			return "❌ Something went wrong while deleting all employees";
-		}
-	}
+    @Override
+    public String deleteEmployeeById(Long id) {
+        try {
+            if (employeeRepository.existsById(id)) {
+                employeeRepository.deleteById(id);
+                return "✅ Employee deleted successfully!";
+            }
+            return "❌ Employee not found with id " + id;
+        } catch (Exception e) {
+            return "❌ Something went wrong while deleting employee";
+        }
+    }
+
+    // DeleteAllEmployees
+    @Override
+    public String deleteAllEmployees() {
+        try {
+            employeeRepository.deleteAll();
+            return "✅ All employees deleted successfully!";
+        } catch (Exception e) {
+            return "❌ Something went wrong while deleting all employees";
+        }
+    }
+	
 
 	// Validation
 	private void validateEmployeeFields(Employee employee) {
