@@ -15,7 +15,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.codemyth.dto.EmployeeDTO;
+import com.codemyth.payload.ApiResponse;
 import com.codemyth.services.EmployeeServiceImpl;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/employee")
@@ -26,50 +29,53 @@ public class EmployeeController {
 
 	// CreateEmployee
 	@PostMapping
-	public ResponseEntity<String> createEmployee(@RequestBody EmployeeDTO employeeDTO) {
+	public ResponseEntity<ApiResponse<EmployeeDTO>> createEmployee(@Valid@RequestBody EmployeeDTO employeeDTO) {
 		String response = employeeService.createEmployee(employeeDTO);
 		if (response.startsWith("❌")) {
-			return ResponseEntity.badRequest().body(response);
+			return ResponseEntity.badRequest().body(new ApiResponse<>(false, response, null));
 		}
-		return ResponseEntity.ok(response);
+		return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(true, response, employeeDTO));
 	}
 
 	// GetAllEmployees
 	@GetMapping
-	public ResponseEntity<List<EmployeeDTO>> getAllEmployees() {
-		return ResponseEntity.ok(employeeService.getAllEmployees());
+	public ResponseEntity<ApiResponse<List<EmployeeDTO>>> getAllEmployees() {
+		List<EmployeeDTO> employees = employeeService.getAllEmployees();
+		return ResponseEntity.ok(new ApiResponse<>(true, "✅ Employees fetched successfully", employees));
 	}
 
 	// GetEmployeeByID
 	@GetMapping("/{id}")
-	public ResponseEntity<EmployeeDTO> getEmployeeById(@PathVariable Long id) {
-		return ResponseEntity.ok(employeeService.getEmployeeById(id));
+	public ResponseEntity<ApiResponse<EmployeeDTO>> getEmployeeById(@PathVariable Long id) {
+		EmployeeDTO emp = employeeService.getEmployeeById(id);
+		return ResponseEntity.ok(new ApiResponse<>(true, "✅ Employee fetched successfully", emp));
 	}
 
 	// UpdateEmployee
 	@PutMapping("/{id}")
-	public ResponseEntity<String> updateEmployee(@PathVariable Long id, @RequestBody EmployeeDTO employeeDTO) {
+	public ResponseEntity<ApiResponse<EmployeeDTO>> updateEmployee(@PathVariable Long id,
+			@Valid @RequestBody EmployeeDTO employeeDTO) {
 		String response = employeeService.updateEmployee(id, employeeDTO);
 		if (response.startsWith("❌")) {
-			return ResponseEntity.badRequest().body(response);
+			return ResponseEntity.badRequest().body(new ApiResponse<>(false, response, null));
 		}
-		return ResponseEntity.ok(response);
+		return ResponseEntity.ok(new ApiResponse<>(true, response, employeeDTO));
 	}
 
 	// DeleteByID
 	@DeleteMapping("/{id}")
-	public ResponseEntity<String> deleteEmployee(@PathVariable Long id) {
+	public ResponseEntity<ApiResponse<Void>> deleteEmployee(@PathVariable Long id) {
 		String response = employeeService.deleteEmployeeById(id);
 		if (response.startsWith("❌")) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(false, response, null));
 		}
-		return ResponseEntity.ok(response);
+		return ResponseEntity.ok(new ApiResponse<>(false, response, null));
 	}
 
 	// DeleteAllEmployees
 	@DeleteMapping
-	public ResponseEntity<String> deleteAllEmployees() {
+	public ResponseEntity<ApiResponse<Void>> deleteAllEmployees() {
 		String response = employeeService.deleteAllEmployees();
-		return ResponseEntity.ok(response);
+		return ResponseEntity.ok(new ApiResponse<>(true, response, null));
 	}
 }

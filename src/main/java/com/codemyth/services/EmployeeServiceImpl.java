@@ -124,12 +124,12 @@ public class EmployeeServiceImpl implements EmployeeService {
 
 	// Validation
 	private void validateEmployeeFields(Employee employee) {
-		if (employee.getFirstName() == null || employee.getFirstName().trim().isEmpty()) {
-			throw new IllegalArgumentException("❌ First name is required");
+		if (employee.getFirstName() == null || employee.getFirstName().trim().isEmpty()|| employee.getFirstName().equalsIgnoreCase("null")) {
+			throw new IllegalArgumentException("❌ First name is required and cannot be 'null");
 		}
 
-		if (employee.getLastName() == null || employee.getLastName().trim().isEmpty()) {
-			throw new IllegalArgumentException("❌ Last name is required");
+		if (employee.getLastName() == null || employee.getLastName().trim().isEmpty()|| employee.getLastName().equalsIgnoreCase("null")) {
+			throw new IllegalArgumentException("❌ Last name is required and cannot be 'null");
 		}
 
 		// AgeValidation
@@ -158,13 +158,13 @@ public class EmployeeServiceImpl implements EmployeeService {
 		}
 
 		// AddressValidation
-		if (employee.getAddress() == null || employee.getAddress().length() < 10) {
-			throw new IllegalArgumentException("❌ Address must be at least 10 characters long");
+		if (employee.getAddress() == null || employee.getAddress().equalsIgnoreCase("null") || employee.getAddress().length() < 10) {
+			throw new IllegalArgumentException("❌ Address must be at least 10 characters long and not 'null");
 		}
 
 		// CityValidation
-		if (employee.getCity() == null || !employee.getCity().matches("^[A-Za-z ]{2,50}$")) {
-			throw new IllegalArgumentException("❌ City must contain only alphabets (2-50 characters)");
+		if (employee.getCity() == null || employee.getCity().equalsIgnoreCase("null") || !employee.getCity().matches("^[A-Za-z ]{2,50}$")) {
+			throw new IllegalArgumentException("❌ City must contain only alphabets (2-50 characters) and not 'null");
 		}
 
 		// SalaryValidation
